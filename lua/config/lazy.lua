@@ -15,6 +15,7 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
+  version = false,
   spec = {
     -- add LazyVim and import its plugins
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
@@ -51,3 +52,5 @@ require("lazy").setup({
     },
   },
 })
+-- NOTE:override keymap in lazy buffer for colemak, https://github.com/folke/lazy.nvim/blob/main/lua/lazy/view/config.lua
+require("lazy.view.config").keys.hover = "E"
