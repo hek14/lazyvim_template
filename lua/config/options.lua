@@ -14,6 +14,7 @@ opt.relativenumber = false
 -- Set to "basedpyright" to use basedpyright instead of pyright.
 -- g.lazyvim_python_lsp = "basedpyright"
 g.lazyvim_python_lsp = "pylance"
+-- g.lazyvim_python_lsp = "jedi_language_server"
 
 g.lazyvim_python_ruff = "ruff"
 g.autoformat = false

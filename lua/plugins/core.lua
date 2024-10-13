@@ -201,6 +201,7 @@ return {
   },
   {
     "hrsh7th/nvim-cmp",
+    enabled = false,
     event = { "InsertEnter", "CmdlineEnter" },
     opts = function(_, opts)
       opts.experimental.ghost_text = false
@@ -351,6 +352,7 @@ return {
       },
     },
     opts = function(_, opts)
+      require('config.completion')
       if vim.g.lazyvim_python_lsp == "pylance" then
         require("config.pylance")
       end
