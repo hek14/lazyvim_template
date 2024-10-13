@@ -50,16 +50,17 @@ Example:
 --   return vim.cmd(string.format([[:call VimuxRunCommand("cd %s")<Left><Left>]], path))
 -- end)
 
-local my_colorscheme_override = function()
-  vim.cmd([[highlight! link FlashLabel Error]])
-  vim.cmd([[highlight! LspSignatureActiveParameter guibg=gray]])
-  vim.cmd([[highlight! BufferLineIndicatorSelected guifg='#FFC0CB']])
-  vim.cmd([[highlight! ModeLinefileinfo cterm=bold gui=bold guifg=white guibg=#282828]])
-  vim.cmd([[highlight! ModeLinemode cterm=bold gui=bold guifg=white guibg=#282828]])
-  -- vim.cmd([[highlight! link GlancePreviewNormal Visual]])
-end
-
 return {
+  {
+    "LazyVim/LazyVim",
+    version = false,
+    opts = {
+      -- colorscheme = "default",
+      -- colorscheme = "moonfly",
+      -- colorscheme = "github_dark_colorblind",
+      colorscheme = "gruber-darker",
+    },
+  },
   { import = "lazyvim.plugins.extras.util.project" },
   { import = "lazyvim.plugins.extras.dap.core" },
   { import = "lazyvim.plugins.extras.dap.nlua" },
@@ -70,7 +71,7 @@ return {
   { import = "lazyvim.plugins.extras.editor.dial" },
   { import = "lazyvim.plugins.extras.editor.harpoon2" },
   {
-    "EtiamNullam/deferred-clipboard.nvim",
+    "EtiamNullam/deferred-clipboard.nvim", -- NOTE: OSC52 copy/paste very slow, use this plugin to overcome it
     lazy = false,
     config = function()
       require("deferred-clipboard").setup({
@@ -80,10 +81,9 @@ return {
   },
   {
     "nvimdev/modeline.nvim",
-    event = "VeryLazy",
+    event = "ColorScheme",
     config = function()
       require("modeline").setup()
-      vim.schedule(my_colorscheme_override)
     end,
   },
   {
@@ -118,13 +118,13 @@ return {
     "NeogitOrg/neogit",
     cmd = "Neogit",
     dependencies = {
-      "nvim-lua/plenary.nvim", -- required
+      "nvim-lua/plenary.nvim",
       {
         "sindrets/diffview.nvim",
         dependencies = {
           "nvim-tree/nvim-web-devicons",
         },
-      }, -- optional - Diff integration
+      },
       "nvim-telescope/telescope.nvim", -- optional
     },
     config = true,
@@ -141,64 +141,10 @@ return {
     cmd = "Messages",
   },
   {
-    "LazyVim/LazyVim",
-    version = false,
-    opts = {
-      -- colorscheme = "default",
-      -- colorscheme = "moonfly",
-      -- colorscheme = "github_dark_colorblind",
-      colorscheme = "gruber-darker",
-    },
-  },
-  {
     "gbprod/yanky.nvim",
     keys = {
       { "gp", false },
     },
-  },
-  {
-    "folke/noice.nvim",
-    keys = {
-      { "<C-f>", false },
-      { "<C-b>", false },
-      {
-        "<Esc>",
-        function()
-          vim.cmd([[NoiceDismiss]])
-          vim.cmd([[noh]])
-        end,
-      },
-    },
-  },
-  {
-    "projekt0n/github-nvim-theme",
-    config = function()
-      require("github-theme").setup({
-        -- groups = {
-        --   github_dark = {
-        --     Normal = {bg = "#0a0a0a"},
-        --     NormalNC = {bg = "#171616"}, -- non-active window
-        --     NormalFloat = {bg = "#1c1a1a"}, -- float window, like lazy window and terminals
-        --   }
-        -- },
-      })
-      vim.schedule(my_colorscheme_override)
-    end,
-  },
-  {
-    "bluz71/vim-moonfly-colors",
-    config = function()
-      vim.api.nvim_create_autocmd("colorScheme", {
-        callback = my_colorscheme_override,
-      })
-    end,
-  },
-  {
-    "behemothbucket/gruber-darker-theme.nvim",
-    config = function()
-      require("gruber-darker").setup()
-      vim.schedule(my_colorscheme_override)
-    end,
   },
   {
     "L3MON4D3/LuaSnip",
@@ -374,7 +320,6 @@ return {
       },
     },
   },
-
   {
     "nvim-neo-tree/neo-tree.nvim",
     opts = {
@@ -390,7 +335,6 @@ return {
     dependencies = {
       {
         "SmiteshP/nvim-navic",
-
         init = function()
           LazyVim.lsp.on_attach(function(client, buffer)
             if client.supports_method("textDocument/documentSymbol") then
@@ -407,43 +351,13 @@ return {
       },
     },
     opts = function(_, opts)
-      local util = require("lspconfig.util")
-      local root_files = {
-        "pyproject.toml",
-        "setup.py",
-        "setup.cfg",
-        "requirements.txt",
-        "Pipfile",
-        "pyrightconfig.json",
-        "project.md",
-      }
-      local default_config = {
-        name = "pylance",
-        autostart = true,
-        single_file_support = true,
-        cmd = { 'pylance', "--stdio" },
-        filetypes = { "python" },
-        root_dir = function(fname)
-          return util.root_pattern(unpack(root_files))(fname) or util.find_git_ancestor(fname) or util.path.dirname(fname)
-        end,
-        settings = {
-          python = {
-            analysis = vim.empty_dict(),
-          },
-          telemetry = {
-            telemetryLevel = "off",
-          },
-        },
-      }
-      require("lspconfig.configs")['pylance'] = {
-        default_config = vim.tbl_extend("force", util.default_config, default_config),
-      }
-
+      if vim.g.lazyvim_python_lsp == "pylance" then
+        require("config.pylance")
+      end
       -- see full opts: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/plugins/lsp/init.lua
       opts.inlay_hints.enabled = true
       opts.document_highlight.enabled = true
-      -- opts.diagnostics.signs = nil
-      -- opts.diagnostics.update_in_insert = false
+      opts.diagnostics.signs = nil
       opts.setup = {
         -- NOTE: per-server settings
         ["basedpyright"] = function(server, opts)
@@ -460,15 +374,11 @@ return {
         end,
         ["pyright"] = function(server, opts)
           LazyVim.lsp.on_attach(function(client, buffer)
-            vim.print("pyright support semanticTokensProvider? ", client.server_capabilities.semanticTokensProvider)
             client.server_capabilities.semanticTokensProvider = nil
           end)
         end,
         ["*"] = function(server, opts) -- NOTE: override the opts for all servers
           require("lspconfig")[server].setup(opts)
-          LazyVim.lsp.on_attach(function(client, buffer)
-            vim.print(server, " support semanticTokensProvider? ", client.server_capabilities.semanticTokensProvider)
-          end)
         end,
       }
       opts.servers["ruff"] = { enabled = true }
@@ -512,46 +422,81 @@ return {
       keys[#keys + 1] = { "gi", "<cmd>Glance implementations<cr>", { desc = "Preview implementations" } }
       keys[#keys + 1] = { "[[", false }
       keys[#keys + 1] = { "]]", false }
-
     end,
   },
   {
-    "nvim-lualine/lualine.nvim",
+    "dnlhc/glance.nvim",
+    cmd = "Glance",
+    config = function()
+      local glance = require("glance")
+      local actions = glance.actions
+      glance.setup({
+        border = {
+          enable = true, -- Show window borders. Only horizontal borders allowed
+          top_char = "―",
+          bottom_char = "―",
+        },
+        mappings = {
+          list = {
+            ["n"] = actions.next, -- Bring the cursor to the next item in the list
+            ["e"] = actions.previous, -- Bring the cursor to the previous item in the list
+            ["j"] = actions.next, -- Bring the cursor to the next item in the list
+            ["k"] = actions.previous, -- Bring the cursor to the previous item in the list
+            ["<Down>"] = actions.next,
+            ["<Up>"] = actions.previous,
+            ["<Tab>"] = false, -- Bring the cursor to the next location skipping groups in the list
+            ["<S-Tab>"] = false, -- Bring the cursor to the previous location skipping groups in the list
+            ["<C-n>"] = actions.next_location, -- Bring the cursor to the next location skipping groups in the list
+            ["<C-p>"] = actions.previous_location, -- Bring the cursor to the previous location skipping groups in the list
+            ["<C-u>"] = actions.preview_scroll_win(5),
+            ["<C-d>"] = actions.preview_scroll_win(-5),
+            ["v"] = actions.jump_vsplit,
+            ["s"] = actions.jump_split,
+            ["t"] = actions.jump_tab,
+            ["<CR>"] = actions.jump,
+            ["o"] = actions.jump,
+            ["l"] = actions.open_fold,
+            ["h"] = actions.close_fold,
+            ["<C-e>"] = actions.enter_win("preview"), -- Focus preview window
+            ["q"] = actions.close,
+            ["Q"] = actions.close,
+            ["<Esc>"] = actions.close,
+            ["<C-q>"] = actions.quickfix,
+          },
+          preview = {
+            ["Q"] = actions.close,
+            ["<C-n>"] = actions.next_location, -- Bring the cursor to the next location skipping groups in the list
+            ["<C-p>"] = actions.previous_location, -- Bring the cursor to the previous location skipping groups in the list
+            ["<Tab>"] = false,
+            ["<S-Tab>"] = false,
+            ["<C-e>"] = actions.enter_win("list"), -- Focus list window
+          },
+        },
+      })
+    end,
+  },
+  {
+    "williamboman/mason.nvim",
     opts = function(_, opts)
-      local need_update = {}
-      local cached = {}
-      local wrapper = function(event, fn, id)
-        vim.api.nvim_create_autocmd(event, {
-          callback = function(_)
-            need_update[id] = true
-          end,
-        })
-        return function(args)
-          if need_update[id] then
-            need_update[id] = false
-            cached[id] = fn(args)
-            return cached[id]
-          else
-            return cached[id] or ""
-          end
-        end
-      end
-
-      local lualine_root = wrapper("BufEnter", function()
-        local root, method = require("project_nvim.project").get_project_root()
-        return root
-      end, "lualine_c_root")
-
-      local lualine_filename = wrapper("BufEnter", function()
-        local root, method = require("project_nvim.project").get_project_root()
-        root = root:gsub("%-", "%%-")
-        local current = vim.fn.expand("%:p")
-        local relative = current:gsub(root .. "/", "")
-        return relative
-      end, "lualine_c_file")
-
-      opts.sections.lualine_c = { lualine_root, lualine_filename }
-      -- opts.options.theme = "base16"
+      -- NOTE:get package path:
+      -- local path = require("mason-registry").get_package("php-debug-adapter"):get_install_path()
+      vim.list_extend(opts.ensure_installed, {
+        "stylua",
+        "shellcheck",
+        "ruff",
+        "basedpyright",
+        "lua-language-server",
+        "json-lsp",
+        -- "pylance",
+        -- "clangd"
+      })
+      -- opts.registries = { "github:fecet/mason-registry" }
+    end,
+    config = function(_, opts)
+      require("mason").setup(opts)
+    end,
+    init = function()
+      vim.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
     end,
   },
   {
@@ -574,30 +519,6 @@ return {
   {
     "tpope/vim-surround",
     event = "BufEnter",
-  },
-  {
-    "williamboman/mason.nvim",
-    opts = function(_, opts)
-      -- NOTE:get package path:
-      -- local path = require("mason-registry").get_package("php-debug-adapter"):get_install_path()
-      vim.list_extend(opts.ensure_installed, {
-        "stylua",
-        "shellcheck",
-        "ruff",
-        "basedpyright",
-        "lua-language-server",
-        "json-lsp",
-        "pylance",
-        "clangd"
-      })
-      opts.registries = { "github:fecet/mason-registry" }
-    end,
-    config = function(_, opts)
-      require("mason").setup(opts)
-    end,
-    init = function()
-      vim.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
-    end,
   },
   {
     "monkoose/matchparen.nvim",
@@ -654,62 +575,6 @@ return {
           },
         },
       }
-    end,
-  },
-  {
-    "rcarriga/nvim-dap-ui",
-    enabled = false,
-    opts = {
-      mappings = {
-        expand = { "<CR>", "<2-LeftMouse>" },
-        open = "o",
-        remove = "d",
-        edit = "<C-e>",
-        repl = "r",
-      },
-      layouts = {
-        {
-          elements = {
-            -- {
-            --   id = "scopes",
-            --   size = 0.25,
-            -- },
-            {
-              id = "breakpoints",
-              size = 0.33,
-            },
-            {
-              id = "stacks",
-              size = 0.33,
-            },
-            {
-              id = "watches",
-              size = 0.34,
-            },
-          },
-          position = "left",
-          size = 40,
-        },
-        {
-          elements = {
-            {
-              id = "repl",
-              size = 0.5,
-            },
-            {
-              id = "console",
-              size = 0.5,
-            },
-          },
-          position = "right",
-          size = 100,
-        },
-      },
-    },
-    config = function(_, opts)
-      local dap = require("dap")
-      local dapui = require("dapui")
-      dapui.setup(opts)
     end,
   },
   {
@@ -797,189 +662,6 @@ return {
     },
   },
   {
-
-    "preservim/vimux",
-    lazy = false,
-    config = function()
-      vim.api.nvim_create_user_command("Debug", function(a)
-        if a.args == "current" then
-          a.args = vim.fn.expand("%")
-        end
-        vim.fn.call("VimuxRunCommand", { "./debug.sh " .. a.args })
-        vim.api.nvim_input("<F5>")
-      end, {
-          complete = function()
-            return { "server", "new", "old", "current" }
-          end,
-          nargs = "?",
-        })
-      vim.schedule(function()
-        vim.notify("local vimrc loaded")
-      end)
-      vim.g.VimuxUseNearest = false
-      vim.g.VimuxRunnerName = "VimUx"
-      vim.api.nvim_create_user_command("VimuxRunCommand", function(args)
-        local input = ""
-        for i = 1, #args.fargs do
-          if i == 1 then
-            input = args.fargs[1]
-          else
-            input = input .. " " .. args.fargs[i]
-          end
-        end
-        vim.fn.VimuxRunCommand(input)
-      end, { force = true, complete = "file", nargs = "*" })
-
-      vim.api.nvim_create_user_command("VimuxSendText", function(args)
-        local input = ""
-        for i = 1, #args.fargs do
-          if i == 1 then
-            input = args.fargs[1]
-          else
-            input = input .. " " .. args.fargs[i]
-          end
-        end
-        input = input:sub(1, -1) .. "\r"
-        vim.fn.VimuxSendText(input)
-      end, { force = true, complete = "file", nargs = "*" })
-    end,
-    init = function()
-      vim.g.kill_vimux = true
-      vim.keymap.set("n", "<leader>uk", function()
-        vim.g.kill_vimux = not vim.g.kill_vimux
-        vim.notify(string.format("kill_vimux? %s", vim.g.kill_vimux))
-      end, { desc = "Togglle kill_tmux" })
-      vim.api.nvim_create_user_command("KeepTmux", function()
-        vim.g.kill_vimux = false
-      end, {})
-      vim.api.nvim_create_user_command("HandleTmuxS", function()
-        vim.g.VimuxOrientation = "v"
-        vim.g.VimuxRunnerType = "pane"
-        vim.api.nvim_input("<space>tt")
-      end, {})
-      vim.api.nvim_create_autocmd("VimLeavePre", {
-        callback = function()
-          if vim.g.kill_vimux then
-            pcall(function()
-              vim.cmd([[VimuxCloseRunner]])
-            end)
-          end
-        end,
-
-        desc = "Close vimux runner",
-      })
-      vim.api.nvim_create_user_command("Runpython", function(a)
-        local convert_file = function(s)
-          if s == "%" then
-            s = vim.fn.expand("%")
-          end
-          return s
-        end
-
-        local convert_dir = function(s)
-          if s == "$root" then
-            s = vim.uv.cwd()
-          elseif s == "$folder" then
-            s = vim.fn.expand("%:p:h")
-          elseif s:sub(1, 1) == "$" then
-            s = vim.env[s:sub(2, -1)]
-          end
-          return s
-        end
-
-        local dir = vim.fn.expand("%:p:h")
-        local python_file = vim.fn.expand("%:t")
-
-        if #a.fargs == 1 then
-          python_file = convert_file(a.fargs[1])
-        elseif #a.fargs == 2 then
-          dir = convert_dir(a.fargs[1])
-          python_file = convert_file(a.fargs[2])
-        end
-        vim.g.VimuxRunnerType = "pane"
-        vim.cmd(string.format("VimuxRunCommand source set_env.sh ; python %s", python_file))
-      end, { nargs = "*", complete = "file" })
-
-      -- NOTE: use g:VimuxRunnerIndex to check if opened
-      -- NOTE: use g:VimuxRunnerType to check if showed in current window
-      local wk = require("which-key")
-      wk.add({
-        mode = "n",
-        { "<leader>t", group = "Tmux" },
-        {
-          "<leader>tr",
-          function()
-            return [[:<C-u>VimuxRunCommand ]]
-          end,
-          desc = "Run command",
-          expr = true,
-          silent = false,
-        },
-        {
-          "<leader>to",
-          function()
-            vim.g.VimuxRunnerType = "pane"
-            vim.cmd([[VimuxOpenRunner]])
-          end,
-          desc = "Open runner(Deprecated), use toggle instead",
-          silent = false,
-        },
-        {
-          "<leader>tt",
-          function()
-            -- error handle
-            local ok, _ = pcall(function()
-              if vim.fn.exists("g:VimuxRunnerIndex") > 0 then
-                vim.cmd([[VimuxTogglePane]])
-              else
-                vim.cmd([[VimuxOpenRunner]])
-              end
-            end)
-            if not ok then
-              vim.g.VimuxRunnerType = "pane"
-              vim.cmd([[VimuxOpenRunner]])
-            end
-          end,
-          desc = "Toggle pane",
-          silent = false,
-        },
-        {
-          "<leader>ts",
-          function()
-            if vim.fn.exists("g:VimuxRunnerIndex") <= 0 then
-              vim.cmd([[VimuxOpenRunner]])
-            end
-
-            return ":<C-u>VimuxSendText "
-          end,
-          desc = "Send text",
-          expr = true,
-          silent = false,
-        },
-        {
-          "<leader>tc",
-          function()
-            vim.g.VimuxRunnerType = "pane"
-            vim.cmd([[VimuxCloseRunner]])
-            vim.g.VimuxRunnerIndex = nil
-          end,
-          desc = "Close runner",
-        },
-        {
-          "<leader>tz",
-          "<cmd>VimuxZoomRunner<cr>",
-          desc = "Zoom runner",
-        },
-        {
-          "<leader>tl",
-          "<cmd>VimuxRunLastComman<cr>",
-          desc = "Run last command",
-        },
-      })
-      vim.keymap.set("n", "<leader>tp", "<cmd>KeepTmux<cr>", { desc = "Do not kill tmux when quit vim" })
-    end,
-  },
-  {
     "jedrzejboczar/exrc.nvim",
     lazy = false,
     config = true,
@@ -991,56 +673,5 @@ return {
     "mbbill/undotree",
     cmd = "UndotreeToggle",
     keys = { { "<leader>uu", "<cmd>UndotreeToggle<cr>", desc = "Undo tree" } },
-  },
-  {
-    "dnlhc/glance.nvim",
-    cmd = "Glance",
-    config = function()
-      local glance = require("glance")
-      local actions = glance.actions
-      glance.setup({
-        border = {
-          enable = true, -- Show window borders. Only horizontal borders allowed
-          top_char = "―",
-          bottom_char = "―",
-        },
-        mappings = {
-          list = {
-            ["n"] = actions.next, -- Bring the cursor to the next item in the list
-            ["e"] = actions.previous, -- Bring the cursor to the previous item in the list
-            ["j"] = actions.next, -- Bring the cursor to the next item in the list
-            ["k"] = actions.previous, -- Bring the cursor to the previous item in the list
-            ["<Down>"] = actions.next,
-            ["<Up>"] = actions.previous,
-            ["<Tab>"] = false, -- Bring the cursor to the next location skipping groups in the list
-            ["<S-Tab>"] = false, -- Bring the cursor to the previous location skipping groups in the list
-            ["<C-n>"] = actions.next_location, -- Bring the cursor to the next location skipping groups in the list
-            ["<C-p>"] = actions.previous_location, -- Bring the cursor to the previous location skipping groups in the list
-            ["<C-u>"] = actions.preview_scroll_win(5),
-            ["<C-d>"] = actions.preview_scroll_win(-5),
-            ["v"] = actions.jump_vsplit,
-            ["s"] = actions.jump_split,
-            ["t"] = actions.jump_tab,
-            ["<CR>"] = actions.jump,
-            ["o"] = actions.jump,
-            ["l"] = actions.open_fold,
-            ["h"] = actions.close_fold,
-            ["<C-e>"] = actions.enter_win("preview"), -- Focus preview window
-            ["q"] = actions.close,
-            ["Q"] = actions.close,
-            ["<Esc>"] = actions.close,
-            ["<C-q>"] = actions.quickfix,
-          },
-          preview = {
-            ["Q"] = actions.close,
-            ["<C-n>"] = actions.next_location, -- Bring the cursor to the next location skipping groups in the list
-            ["<C-p>"] = actions.previous_location, -- Bring the cursor to the previous location skipping groups in the list
-            ["<Tab>"] = false,
-            ["<S-Tab>"] = false,
-            ["<C-e>"] = actions.enter_win("list"), -- Focus list window
-          },
-        },
-      })
-    end,
   },
 }
