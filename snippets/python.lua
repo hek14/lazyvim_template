@@ -4,6 +4,7 @@ local line_replace = function(args,_,user_arg_1)
   local og_line = args[1][1]
   local line = string.gsub(og_line,user_arg_1['pat'],user_arg_1['sub'])
   line = string.gsub(line,vim.fn.toupper(user_arg_1['pat']), vim.fn.toupper(user_arg_1['sub']))
+
   return line
 end
 
@@ -14,6 +15,7 @@ end
 local search_line = function(line)
   local lines = buf_lines(vim.api.nvim_get_current_buf())
   for _,each_line in ipairs(lines) do
+
     if each_line == line then
       return true
     end
@@ -70,17 +72,20 @@ return {
         nodes[1] = sn(nil,{t"axes.imshow(",i(1,""),t")"})
         return sn(nil,nodes)
       end
+
       for j=1,number do
         if j~=number then
           nodes[j] = sn(j,{t(string.format("axes[%s].imshow(",j-1)),i(1,""),t({")",""})})
         else
           nodes[j] = sn(j,{t(string.format("axes[%s].imshow(",j-1)),i(1,""),t(")")})
         end
+
       end
       local snip = sn(nil,nodes)
       snip.old_state = number -- NOTE: store th
       return snip
     end,{1}),
+
     c(3,{
       t("plt.show()"),
       sn(nil,{t"plt.savefig(",i(1),t")"})
@@ -110,6 +115,7 @@ return {
     d(2,function(args,_,old_state)
       old_state = old_state or {2,2}
       local nodes = {}
+
       local str = string.gsub(args[1][1],' ','')
       local numbers = require('core.utils').stringSplit(str,',')
       numbers[1] = tonumber(numbers[1])

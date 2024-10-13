@@ -93,6 +93,7 @@ return {
     opts = {
       ---@type lspconfig.options
       servers = {
+
         -- tsserver will be automatically installed with mason and loaded with lspconfig
         tsserver = {},
       },
@@ -126,6 +127,7 @@ return {
         "json",
         "lua",
         "markdown",
+
         "markdown_inline",
         "python",
         "query",

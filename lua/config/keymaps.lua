@@ -27,9 +27,13 @@ map({ "n", "x", "o" }, "U", "I", opt)
 map({ "n", "x", "o" }, "j", "e", opt)
 map({ "n", "x", "o" }, "J", "E", opt)
 -- windows
+
 map({ "n" }, "<C-w>n", "<C-w>j", opt)
+map({ "n" }, "<C-w>N", "<C-w>J", opt) -- swap window to left
 map({ "n" }, "<C-w>e", "<C-w>k", opt)
+map({ "n" }, "<C-w>E", "<C-w>K", opt)
 map({ "n" }, "<C-w>i", "<C-w>l", opt)
+map({ "n" }, "<C-w>I", "<C-w>L", opt)
 map({ "n" }, "<C-w><C-n>", "<C-w><C-j>", opt)
 map({ "n" }, "<C-w><C-e>", "<C-w><C-k>", opt)
 map({ "n" }, "<C-w><C-i>", "<C-w><C-l>", opt)
@@ -43,9 +47,20 @@ map("i", "<C-e>", "<End>", opt)
 map("i", "<C-j>", "<Down>", opt)
 map("i", "<C-k>", "<Up>", opt)
 
+map("n", "g*", "*``")
+map("n", "g#", "#``")
+map("n",'gp',[['`[' . strpart(getregtype(), 0, 1) . '`]']], {expr=true})
+
+map("x", "ul", "g_o^")
+map("o", "ul", ":normal vul<CR>")
+
+local lazyterm = function() LazyVim.terminal(nil, { cwd = vim.fn.expand("%:p:h") }) end
+map("n", "<leader>fT", lazyterm, opt)
+
 vim.keymap.del("n", "<C-h>")
 vim.keymap.del("n", "<C-j>")
 vim.keymap.del("n", "<C-k>")
+
 vim.keymap.del("n", "<C-l>")
 map("n", "<C-j>", "J", opt)
 
@@ -101,6 +116,73 @@ vim.keymap.del("t", "<C-h>")
 vim.keymap.del("t", "<C-j>")
 vim.keymap.del("t", "<C-k>")
 vim.keymap.del("t", "<C-l>")
+map("t", "jj" , "<C-\\><C-n>")
+
+-- debug
+map("n", "<F3>", function()
+  require("dap").terminate()
+end, { desc = "Dap terminate" })
+map("n", "<F4>", function()
+  require("dap").run_last()
+end, { desc = "Dap restart" })
+map("n", "<leader>du", ":lua require('dap').repl.toggle()<CR>")
+map({'n', 'v'}, '<Leader>de', function()
+  require('dap.ui.widgets').hover()
+end)
+map('n', '<Leader>df', function()
+  local widgets = require('dap.ui.widgets')
+  widgets.centered_float(widgets.frames)
+end)
+map({'n', 'v'}, '<Leader>dp', function()
+  require('dap.ui.widgets').preview()
+end)
+map("n", "<F5>", function()
+  require("dap").continue()
+end, { desc = "Dap continue" })
+map("n", "<F6>", function()
+  require("dap").run_to_cursor()
+end, { desc = "Dap run_to_cursor" })
+map("n", "<F8>", function()
+  require("dap").toggle_breakpoint()
+end, { desc = "Dap toggle_breakpoint" })
+map("n", "<F10>", function()
+  require("dap").step_over()
+end, { desc = "Dap step_over" })
+map("n", "<F11>", function()
+  require("dap").step_into()
+end, { desc = "Dap step_into" })
+map("n", "<F12>", function()
+  require("dap").step_out()
+end, { desc = "Dap step_out" })
+
+function _G.dap_breakpoints()
+  require("dap").list_breakpoints()
+  vim.cmd [[copen]]
+  local build_new_items = function(remove_line)
+    local items = vim.fn.getqflist()
+    local res = {}
+    for i, item in ipairs(items) do
+      if i~=remove_line then
+        table.insert(res, item)
+      end
+    end
+    vim.fn.setqflist(res)
+  end
+  local function delete_bp()
+    local items = vim.fn.getqflist()
+    local current_line,_ = unpack(vim.api.nvim_win_get_cursor(0))
+    local item = items[current_line]
+    require("dap.breakpoints").remove(item.bufnr, item.lnum)
+    build_new_items(current_line)
+  end
+  local keymaps = {
+    ['dd'] = delete_bp
+  }
+  for key,func in pairs(keymaps) do
+    vim.keymap.set("n", key, func, {buffer = true})
+  end
+end
+map("n", "<leader>db", ":lua dap_breakpoints()<CR>")
 
 local range_search = function()
   local language_tree = vim.treesitter.get_parser(0)
@@ -113,12 +195,13 @@ local range_search = function()
     return
   end
 
+
   local root = ts_utils.get_root_for_node(node)
   local range_start = nil
   local range_end = nil
   while node and node ~= root do
     local _match = function()
-      return #vim.fn.matchstr(node:type(), [[\(function\|method\)]]) > 0
+      return #vim.fn.matchstr(node:type(), [[\(function_definition\|class_definition\)]]) > 0
     end
     if _match() then
       range_start, _, range_end, _ = node:range()
@@ -128,13 +211,14 @@ local range_search = function()
     end
   end
   if range_start and range_end then
-    vim.print({ range_start = range_start, range_end = range_end })
-    vim.cmd(string.format([[/\%%>%sl\%%<%sl%s]], range_start + 1, range_end + 1, pattern))
+    vim.notify(string.format("Search in: %s %s", range_start + 1, range_end + 2))
+    vim.cmd(string.format([[/\%%>%sl\%%<%sl%s]], range_start + 1, range_end + 2, pattern))
   else
     vim.cmd(string.format("/%s", cw))
   end
 end
-map("n", "<localleader>s", range_search)
+map("n", "<localleader>s", range_search, {desc ="Search in current function/file"})
+
 
 local function listed_win_info()
   local result = {}
@@ -165,3 +249,35 @@ map("n", "<C-q>", function()
     end
   end
 end)
+
+vim.cmd(string.format("source %s/lua/config/redir.vim", vim.fn.stdpath("config")))
+
+local toggle_qf = function()
+  local qf_exists = false
+  for _, win in pairs(vim.fn.getwininfo()) do
+    if win["quickfix"] == 1 then
+      qf_exists = true
+    end
+  end
+  if qf_exists == true then
+    vim.cmd "cclose"
+    return
+  end
+  if not vim.tbl_isempty(vim.fn.getqflist()) then
+    vim.cmd "copen"
+  end
+end
+map("n", "<C-q>", toggle_qf)
+map("c", "<C-g>", "<Home>Redir <End><CR>")
+map("n", "<Esc>", ":noh<cr>:echo<cr>", {silent = true})
+
+local smart_current_dir = function()
+  local fname = vim.api.nvim_buf_get_name(0)
+  local dir = require('lspconfig').util.find_git_ancestor(fname) or
+  vim.fn.expand('%:p:h')
+  print("lcd " .. dir)
+  vim.cmd("lcd " .. dir)
+end
+
+map("n", "\\cd", smart_current_dir, {silent = false})
+vim.cmd [[ command! DeleteTrailSpace keeppatterns<Bar>%s/\s\+$//e<Bar>noh ]]
