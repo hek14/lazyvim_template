@@ -383,7 +383,7 @@ return {
           require("lspconfig")[server].setup(opts)
         end,
       }
-      opts.servers["ruff"] = { enabled = true }
+      opts.servers["ruff"] = { enabled = false }
       opts.servers["ruff_lsp"] = { enabled = false }
 
       local keys = require("lazyvim.plugins.lsp.keymaps").get()
