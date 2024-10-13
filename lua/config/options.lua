@@ -9,3 +9,4 @@ opt.expandtab = true -- NOTE:In Insert mode: Use the appropriate number of space
 opt.autoindent = true
 opt.cursorline = false
 opt.relativenumber = false
+vim.g.lazyvim_python_lsp = "pylance"

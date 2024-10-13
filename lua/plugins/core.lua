@@ -60,6 +60,7 @@ return {
   },
   { import = "lazyvim.plugins.extras.util.project" },
   { import = "lazyvim.plugins.extras.coding.luasnip" },
+  { import = "lazyvim.plugins.extras.lang.python" },
   {
     "L3MON4D3/LuaSnip",
     opts = function(_, opts)
