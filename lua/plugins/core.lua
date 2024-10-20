@@ -492,7 +492,7 @@ return {
         -- "pylance",
         -- "clangd"
       })
-      -- opts.registries = { "github:fecet/mason-registry" }
+      opts.registries = { "github:fecet/mason-registry" }
     end,
     config = function(_, opts)
       require("mason").setup(opts)
